@@ -1,8 +1,36 @@
-"""apps.executions URL Configuration."""
+"""Executions app URL Configuration."""
 from django.urls import path
+
+from apps.executions.views import (
+    DashboardView,
+    JobAttemptDetailView,
+    JobAttemptListView,
+    JobRunDetailView,
+    JobRunListView,
+    WorkerDetailView,
+    WorkerListView,
+)
 
 app_name = "executions"
 
 urlpatterns = [
-    # Phase 3+: Run history endpoints
+    # Runs
+    path("runs/", JobRunListView.as_view(), name="run-list"),
+    path("runs/<uuid:run_id>/", JobRunDetailView.as_view(), name="run-detail"),
+    # Attempts
+    path("attempts/", JobAttemptListView.as_view(), name="attempt-list"),
+    path(
+        "attempts/<uuid:attempt_id>/",
+        JobAttemptDetailView.as_view(),
+        name="attempt-detail",
+    ),
+    # Workers
+    path("workers/", WorkerListView.as_view(), name="worker-list"),
+    path(
+        "workers/<str:worker_id>/",
+        WorkerDetailView.as_view(),
+        name="worker-detail",
+    ),
+    # Dashboard
+    path("dashboard/", DashboardView.as_view(), name="dashboard"),
 ]

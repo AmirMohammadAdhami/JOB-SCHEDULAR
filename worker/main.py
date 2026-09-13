@@ -22,15 +22,6 @@ import time
 import logging
 from concurrent.futures import Future
 from datetime import timedelta
-from apps.executions.models import JobAttempt, JobRun
-from worker.claim import claim_attempt
-from worker.executor import submit_job
-from worker.heartbeat import (
-    HEARTBEAT_INTERVAL_SECONDS,
-    register_worker,
-    send_heartbeat,
-)
-import django
 
 # Ensure the project root is on sys.path
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -39,10 +30,17 @@ if PROJECT_ROOT not in sys.path:
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nexusops.settings")
 
-
+import django  # noqa: E402
 django.setup()
 
-
+from apps.executions.models import JobAttempt, JobRun  # noqa: E402
+from worker.claim import claim_attempt  # noqa: E402
+from worker.executor import submit_job  # noqa: E402
+from worker.heartbeat import (  # noqa: E402
+    HEARTBEAT_INTERVAL_SECONDS,
+    register_worker,
+    send_heartbeat,
+)
 
 logger = logging.getLogger("worker")
 
