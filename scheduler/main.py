@@ -26,11 +26,13 @@ django.setup()
 
 from scheduler.tick import tick  # noqa: E402
 from scheduler.publisher import publish_pending_events  # noqa: E402
+from scheduler.watchdog import run_watchdog  # noqa: E402
 
 logger = logging.getLogger("scheduler")
 
 TICK_INTERVAL_SECONDS = 5
 PUBLISHER_INTERVAL_SECONDS = 1
+WATCHDOG_INTERVAL_SECONDS = 10
 
 
 def main():
@@ -38,8 +40,10 @@ def main():
 
     tick_count = 0
     publisher_count = 0
+    watchdog_count = 0
     last_tick = 0
     last_publish = 0
+    last_watchdog = 0
 
     try:
         while True:
@@ -69,13 +73,25 @@ def main():
                 last_publish = now
                 publisher_count += 1
 
+            # Run watchdog every 10 seconds
+            if now - last_watchdog >= WATCHDOG_INTERVAL_SECONDS:
+                try:
+                    result = run_watchdog()
+                    if any(v > 0 for v in result.values()):
+                        logger.info(f"Watchdog: {result}")
+                except Exception as e:
+                    logger.error(f"Watchdog failed: {e}", exc_info=True)
+                last_watchdog = now
+                watchdog_count += 1
+
             # Sleep briefly to avoid busy-waiting
             time.sleep(0.1)
 
     except KeyboardInterrupt:
         logger.info(
             f"Scheduler shutting down "
-            f"(ticks={tick_count}, publishes={publisher_count})"
+            f"(ticks={tick_count}, publishes={publisher_count}, "
+            f"watchdogs={watchdog_count})"
         )
         sys.exit(0)
 

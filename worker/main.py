@@ -71,13 +71,22 @@ def handle_attempt_completion(
     now = django.utils.timezone.now()
 
     if result["success"]:
-        # Mark attempt as SUCCESS
+        # Mark attempt as SUCCESS — fencing_token prevents stale updates
         duration = timedelta(milliseconds=result["duration_ms"])
-        JobAttempt.objects.filter(id=attempt.id).update(
+        updated = JobAttempt.objects.filter(
+            id=attempt.id,
+            fencing_token=attempt.fencing_token,
+        ).update(
             status=JobAttempt.Status.SUCCESS,
             finished_at=now,
             duration=duration,
         )
+        if updated == 0:
+            logger.warning(
+                f"Attempt {attempt.id} fencing check failed "
+                f"(token={attempt.fencing_token}) — stale update rejected"
+            )
+            return
         # Update run status
         _update_run_status(attempt.job_run_id)
         logger.info(
@@ -85,14 +94,23 @@ def handle_attempt_completion(
             f"({result['duration_ms']}ms)"
         )
     else:
-        # Mark attempt as FAILED
+        # Mark attempt as FAILED — fencing_token prevents stale updates
         duration = timedelta(milliseconds=result["duration_ms"])
-        JobAttempt.objects.filter(id=attempt.id).update(
+        updated = JobAttempt.objects.filter(
+            id=attempt.id,
+            fencing_token=attempt.fencing_token,
+        ).update(
             status=JobAttempt.Status.FAILED,
             finished_at=now,
             error_message=result.get("error", "Unknown error"),
             duration=duration,
         )
+        if updated == 0:
+            logger.warning(
+                f"Attempt {attempt.id} fencing check failed "
+                f"(token={attempt.fencing_token}) — stale update rejected"
+            )
+            return
         # Update run status
         _update_run_status(attempt.job_run_id)
         logger.error(
