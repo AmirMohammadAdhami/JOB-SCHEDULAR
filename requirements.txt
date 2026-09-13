@@ -1,3 +1,4 @@
+python3-pika
 # Web framework
 Django>=5.1,<5.2
 djangorestframework>=3.15,<3.16
