@@ -3,11 +3,11 @@ Scheduler entry point.
 
 This process runs three responsibilities:
 1. Tick loop — finds due jobs and creates JobRun + JobAttempt records
-2. Outbox publisher — sends pending events to RabbitMQ
-3. Watchdog — detects abandoned executions and dead workers
+2. Outbox publisher — sends pending events to RabbitMQ (Phase 5)
+3. Watchdog — detects abandoned executions and dead workers (Phase 8)
 
-In Phase 1, this is a placeholder that starts and idles.
-Logic is added incrementally in Phases 4, 5, and 8.
+The scheduler is stateless — it can crash and restart without data loss.
+The database is the source of truth.
 """
 import os
 import sys
@@ -24,16 +24,28 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "nexusops.settings")
 import django  # noqa: E402
 django.setup()
 
+from scheduler.tick import tick  # noqa: E402
+
 logger = logging.getLogger("scheduler")
+
+TICK_INTERVAL_SECONDS = 5
 
 
 def main():
-    logger.info("Scheduler starting (Phase 1 — no logic yet)")
+    logger.info(
+        f"Scheduler starting (tick every {TICK_INTERVAL_SECONDS}s)"
+    )
 
     try:
         while True:
-            logger.debug("Scheduler tick (idle)")
-            time.sleep(5)
+            try:
+                scheduled = tick()
+                if scheduled > 0:
+                    logger.info(f"Tick: scheduled {scheduled} jobs")
+            except Exception as e:
+                logger.error(f"Tick failed: {e}", exc_info=True)
+
+            time.sleep(TICK_INTERVAL_SECONDS)
     except KeyboardInterrupt:
         logger.info("Scheduler shutting down")
         sys.exit(0)
