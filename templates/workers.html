@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}NexusOps - Workers{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Workers</h1>
+    <div class="status">
+        <span class="dot"></span>
+        Auto-refreshing every 3s
+    </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+    <table>
+        <thead>
+            <tr>
+                <th>Worker ID</th>
+                <th>Hostname</th>
+                <th>Status</th>
+                <th>Alive</th>
+                <th>Started</th>
+                <th>Last Heartbeat</th>
+                <th>Running Attempts</th>
+            </tr>
+        </thead>
+        <tbody id="workers-table">
+            <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Worker Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="width: 700px;">
+        <h3>Worker Details</h3>
+        <div id="worker-detail-content"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="Workers.closeDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/workers.js' %}"></script>
+<script>Workers.init();</script>
+{% endblock %}

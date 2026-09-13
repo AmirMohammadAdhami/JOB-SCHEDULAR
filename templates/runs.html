@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}NexusOps - Runs{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>Run History</h1>
+    <div>
+        <select id="status-filter" onchange="Runs.loadRuns()" style="padding:6px 10px;border-radius:6px;border:1px solid #30363d;background:#0d1117;color:#e1e4e8;font-size:13px">
+            <option value="">All Statuses</option>
+            <option value="QUEUED">Queued</option>
+            <option value="RUNNING">Running</option>
+            <option value="SUCCESS">Success</option>
+            <option value="PERMANENTLY_FAILED">Failed</option>
+            <option value="CANCELLED">Cancelled</option>
+        </select>
+    </div>
+</div>
+
+<div class="section" style="margin-top: 20px;">
+    <table>
+        <thead>
+            <tr>
+                <th>Run ID</th>
+                <th>Job</th>
+                <th>Status</th>
+                <th>Scheduled</th>
+                <th>Duration</th>
+                <th>Attempts</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="runs-table">
+            <tr><td colspan="7" class="empty-state">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+
+<!-- Run Detail Modal -->
+<div class="modal-overlay" id="detail-modal">
+    <div class="modal" style="width: 700px;">
+        <h3>Run Details</h3>
+        <div id="run-detail-content"></div>
+        <div class="modal-actions">
+            <button class="btn" onclick="Runs.closeDetailModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/runs.js' %}"></script>
+<script>Runs.init();</script>
+{% endblock %}

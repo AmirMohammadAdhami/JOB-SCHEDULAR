@@ -1,424 +1,87 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NexusOps - Job Scheduler Dashboard</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0f1117;
-            color: #e1e4e8;
-            min-height: 100vh;
-        }
-        .header {
-            background: #161b22;
-            border-bottom: 1px solid #30363d;
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .header h1 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #58a6ff;
-        }
-        .header .status {
-            font-size: 13px;
-            color: #8b949e;
-        }
-        .header .status .dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #3fb950;
-            margin-right: 6px;
-            animation: pulse 2s infinite;
-        }
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .container { padding: 24px; max-width: 1400px; margin: 0 auto; }
+{% extends "base.html" %}
+{% load static %}
 
-        /* Stats Grid */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-        .stat-card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 20px;
-        }
-        .stat-card .label {
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #8b949e;
-            margin-bottom: 8px;
-        }
-        .stat-card .value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #e1e4e8;
-        }
-        .stat-card .sub {
-            font-size: 12px;
-            color: #8b949e;
-            margin-top: 4px;
-        }
-        .stat-card.success .value { color: #3fb950; }
-        .stat-card.warning .value { color: #d29922; }
-        .stat-card.danger .value { color: #f85149; }
-        .stat-card.info .value { color: #58a6ff; }
+{% block title %}NexusOps - Dashboard{% endblock %}
 
-        /* Tables */
-        .section {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            margin-bottom: 24px;
-            overflow: hidden;
-        }
-        .section-header {
-            padding: 16px 20px;
-            border-bottom: 1px solid #30363d;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .section-header h2 {
-            font-size: 15px;
-            font-weight: 600;
-        }
-        .section-header .badge {
-            background: #30363d;
-            color: #8b949e;
-            font-size: 12px;
-            padding: 2px 8px;
-            border-radius: 10px;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        th {
-            text-align: left;
-            padding: 10px 20px;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #8b949e;
-            border-bottom: 1px solid #30363d;
-            font-weight: 600;
-        }
-        td {
-            padding: 12px 20px;
-            font-size: 13px;
-            border-bottom: 1px solid #21262d;
-        }
-        tr:last-child td { border-bottom: none; }
-        tr:hover { background: #1c2128; }
+{% block content %}
+<div class="stats-grid">
+    <div class="stat-card success">
+        <div class="label">Success Rate (24h)</div>
+        <div class="value" id="success-rate">--</div>
+        <div class="sub" id="success-detail">--</div>
+    </div>
+    <div class="stat-card info">
+        <div class="label">Total Runs (24h)</div>
+        <div class="value" id="total-runs">--</div>
+        <div class="sub" id="runs-detail">--</div>
+    </div>
+    <div class="stat-card warning">
+        <div class="label">Queue Depth</div>
+        <div class="value" id="queue-depth">--</div>
+        <div class="sub" id="queue-detail">--</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Active Workers</div>
+        <div class="value" id="active-workers">--</div>
+        <div class="sub" id="worker-detail">--</div>
+    </div>
+    <div class="stat-card info">
+        <div class="label">Total Jobs</div>
+        <div class="value" id="total-jobs">--</div>
+        <div class="sub" id="jobs-detail">--</div>
+    </div>
+    <div class="stat-card">
+        <div class="label">Avg Duration (24h)</div>
+        <div class="value" id="avg-duration">--</div>
+        <div class="sub">per attempt</div>
+    </div>
+</div>
 
-        /* Status badges */
-        .badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-        .badge-success { background: rgba(63,185,80,0.15); color: #3fb950; }
-        .badge-warning { background: rgba(210,153,34,0.15); color: #d29922; }
-        .badge-danger { background: rgba(248,81,73,0.15); color: #f85149; }
-        .badge-info { background: rgba(88,166,255,0.15); color: #58a6ff; }
-        .badge-muted { background: rgba(139,148,158,0.15); color: #8b949e; }
-
-        /* Grid layout for tables */
-        .tables-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-        }
-        @media (max-width: 1024px) {
-            .tables-grid { grid-template-columns: 1fr; }
-        }
-
-        /* Progress bar */
-        .progress-bar {
-            background: #21262d;
-            border-radius: 4px;
-            height: 6px;
-            overflow: hidden;
-            margin-top: 8px;
-        }
-        .progress-bar .fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-        .progress-bar .fill.green { background: #3fb950; }
-        .progress-bar .fill.yellow { background: #d29922; }
-        .progress-bar .fill.red { background: #f85149; }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #8b949e;
-        }
-        .refresh-indicator {
-            font-size: 12px;
-            color: #8b949e;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>NexusOps Dashboard</h1>
-        <div class="status">
-            <span class="dot"></span>
-            <span id="last-update">Loading...</span>
+<div class="tables-grid">
+    <div class="section">
+        <div class="section-header">
+            <h2>Recent Runs</h2>
+            <a href="{% url 'runs' %}" style="font-size:12px;color:#58a6ff;text-decoration:none">View All</a>
         </div>
+        <table>
+            <thead><tr><th>Job</th><th>Status</th><th>Scheduled</th></tr></thead>
+            <tbody id="runs-table">
+                <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+        </table>
     </div>
 
-    <div class="container">
-        <!-- Stats Cards -->
-        <div class="stats-grid">
-            <div class="stat-card success">
-                <div class="label">Success Rate (24h)</div>
-                <div class="value" id="success-rate">--</div>
-                <div class="sub" id="success-detail">--</div>
-            </div>
-            <div class="stat-card info">
-                <div class="label">Total Runs (24h)</div>
-                <div class="value" id="total-runs">--</div>
-                <div class="sub" id="runs-detail">--</div>
-            </div>
-            <div class="stat-card warning">
-                <div class="label">Queue Depth</div>
-                <div class="value" id="queue-depth">--</div>
-                <div class="sub" id="queue-detail">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">Active Workers</div>
-                <div class="value" id="active-workers">--</div>
-                <div class="sub" id="worker-detail">--</div>
-            </div>
-            <div class="stat-card info">
-                <div class="label">Total Jobs</div>
-                <div class="value" id="total-jobs">--</div>
-                <div class="sub" id="jobs-detail">--</div>
-            </div>
-            <div class="stat-card">
-                <div class="label">Avg Duration (24h)</div>
-                <div class="value" id="avg-duration">--</div>
-                <div class="sub">per attempt</div>
-            </div>
+    <div class="section">
+        <div class="section-header">
+            <h2>Workers</h2>
+            <a href="{% url 'workers' %}" style="font-size:12px;color:#58a6ff;text-decoration:none">View All</a>
         </div>
-
-        <div class="tables-grid">
-            <!-- Recent Runs -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>Recent Runs</h2>
-                    <span class="badge" id="runs-count">0</span>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Job</th>
-                            <th>Status</th>
-                            <th>Scheduled</th>
-                        </tr>
-                    </thead>
-                    <tbody id="runs-table">
-                        <tr><td colspan="3" class="empty-state">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Active Workers -->
-            <div class="section">
-                <div class="section-header">
-                    <h2>Workers</h2>
-                    <span class="badge" id="workers-count">0</span>
-                </div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Worker</th>
-                            <th>Status</th>
-                            <th>Last Heartbeat</th>
-                        </tr>
-                    </thead>
-                    <tbody id="workers-table">
-                        <tr><td colspan="3" class="empty-state">Loading...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Running Attempts -->
-        <div class="section">
-            <div class="section-header">
-                <h2>Running Attempts</h2>
-                <span class="badge" id="attempts-count">0</span>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Attempt</th>
-                        <th>Job</th>
-                        <th>Worker</th>
-                        <th>Priority</th>
-                        <th>Fencing Token</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody id="attempts-table">
-                    <tr><td colspan="6" class="empty-state">Loading...</td></tr>
-                </tbody>
-            </table>
-        </div>
+        <table>
+            <thead><tr><th>Worker</th><th>Status</th><th>Last Heartbeat</th></tr></thead>
+            <tbody id="workers-table">
+                <tr><td colspan="3" class="empty-state">Loading...</td></tr>
+            </tbody>
+        </table>
     </div>
+</div>
 
-    <script>
-        const API_BASE = '/api/v1';
-        const REFRESH_INTERVAL = 3000;
+<div class="section">
+    <div class="section-header">
+        <h2>Running Attempts</h2>
+        <span class="badge" id="attempts-count">0</span>
+    </div>
+    <table>
+        <thead>
+            <tr><th>Attempt</th><th>Job</th><th>Worker</th><th>Priority</th><th>Token</th><th>Status</th></tr>
+        </thead>
+        <tbody id="attempts-table">
+            <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+    </table>
+</div>
+{% endblock %}
 
-        function statusBadge(status) {
-            const map = {
-                'SUCCESS': 'success', 'RUNNING': 'info', 'QUEUED': 'warning',
-                'FAILED': 'danger', 'PERMANENTLY_FAILED': 'danger',
-                'TIMED_OUT': 'danger', 'CANCELLED': 'muted',
-                'ACTIVE': 'success', 'DEAD': 'danger',
-                'INACTIVE': 'muted',
-            };
-            return `<span class="badge badge-${map[status] || 'muted'}">${status}</span>`;
-        }
-
-        function timeAgo(iso) {
-            if (!iso) return '--';
-            const diff = (Date.now() - new Date(iso).getTime()) / 1000;
-            if (diff < 60) return `${Math.floor(diff)}s ago`;
-            if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
-            if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
-            return `${Math.floor(diff / 86400)}d ago`;
-        }
-
-        function formatDuration(ms) {
-            if (ms === null || ms === undefined) return '--';
-            if (ms < 1000) return `${ms}ms`;
-            return `${(ms / 1000).toFixed(1)}s`;
-        }
-
-        async function fetchJSON(url) {
-            const res = await fetch(url);
-            return res.json();
-        }
-
-        async function refreshDashboard() {
-            try {
-                const [dashboard, runs, workers, attempts] = await Promise.all([
-                    fetchJSON(`${API_BASE}/dashboard/`),
-                    fetchJSON(`${API_BASE}/runs/?limit=10`),
-                    fetchJSON(`${API_BASE}/workers/`),
-                    fetchJSON(`${API_BASE}/attempts/?status=RUNNING&limit=20`),
-                ]);
-
-                // Stats cards
-                document.getElementById('success-rate').textContent =
-                    `${dashboard.runs_24h.success_rate}%`;
-                document.getElementById('success-detail').textContent =
-                    `${dashboard.runs_24h.success} / ${dashboard.runs_24h.total}`;
-
-                document.getElementById('total-runs').textContent =
-                    dashboard.runs_24h.total;
-                document.getElementById('runs-detail').textContent =
-                    `${dashboard.runs_7d.total} in 7d`;
-
-                const queueDepth = dashboard.queue.queued_runs + dashboard.queue.running_attempts;
-                document.getElementById('queue-depth').textContent = queueDepth;
-                document.getElementById('queue-detail').textContent =
-                    `${dashboard.queue.queued_runs} runs queued`;
-
-                document.getElementById('active-workers').textContent =
-                    dashboard.workers.active;
-                document.getElementById('worker-detail').textContent =
-                    `${dashboard.workers.dead} dead`;
-
-                document.getElementById('total-jobs').textContent =
-                    dashboard.jobs.total;
-                document.getElementById('jobs-detail').textContent =
-                    `${dashboard.jobs.active} active`;
-
-                document.getElementById('avg-duration').textContent =
-                    formatDuration(dashboard.attempts_24h.avg_duration_ms);
-
-                // Runs table
-                document.getElementById('runs-count').textContent = runs.length;
-                const runsHtml = runs.length === 0
-                    ? '<tr><td colspan="3" class="empty-state">No runs yet</td></tr>'
-                    : runs.map(r => `
-                        <tr>
-                            <td>${r.job_name}</td>
-                            <td>${statusBadge(r.status)}</td>
-                            <td>${timeAgo(r.scheduled_for)}</td>
-                        </tr>
-                    `).join('');
-                document.getElementById('runs-table').innerHTML = runsHtml;
-
-                // Workers table
-                document.getElementById('workers-count').textContent = workers.length;
-                const workersHtml = workers.length === 0
-                    ? '<tr><td colspan="3" class="empty-state">No workers</td></tr>'
-                    : workers.map(w => `
-                        <tr>
-                            <td>${w.id}</td>
-                            <td>${statusBadge(w.status)}</td>
-                            <td>${timeAgo(w.last_heartbeat_at)}</td>
-                        </tr>
-                    `).join('');
-                document.getElementById('workers-table').innerHTML = workersHtml;
-
-                // Running attempts
-                document.getElementById('attempts-count').textContent = attempts.length;
-                const attemptsHtml = attempts.length === 0
-                    ? '<tr><td colspan="6" class="empty-state">No running attempts</td></tr>'
-                    : attempts.map(a => `
-                        <tr>
-                            <td>${a.id.substring(0, 8)}...</td>
-                            <td>${a.job_name}</td>
-                            <td>${a.worker_id || '--'}</td>
-                            <td>${statusBadge(a.priority)}</td>
-                            <td>${a.fencing_token}</td>
-                            <td>${statusBadge(a.status)}</td>
-                        </tr>
-                    `).join('');
-                document.getElementById('attempts-table').innerHTML = attemptsHtml;
-
-                // Update timestamp
-                document.getElementById('last-update').textContent =
-                    `Updated ${new Date().toLocaleTimeString()}`;
-
-            } catch (err) {
-                console.error('Dashboard refresh failed:', err);
-                document.getElementById('last-update').textContent =
-                    'Refresh failed - retrying...';
-            }
-        }
-
-        // Initial load + auto-refresh
-        refreshDashboard();
-        setInterval(refreshDashboard, REFRESH_INTERVAL);
-    </script>
-</body>
-</html>
+{% block extra_js %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+<script>Dashboard.init();</script>
+{% endblock %}

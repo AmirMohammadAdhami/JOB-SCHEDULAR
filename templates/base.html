@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}NexusOps{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <nav class="nav">
+        <a href="{% url 'dashboard' %}" class="brand">NexusOps</a>
+        <a href="{% url 'dashboard' %}" class="{% if active_page == 'dashboard' %}active{% endif %}">Dashboard</a>
+        <a href="{% url 'jobs' %}" class="{% if active_page == 'jobs' %}active{% endif %}">Jobs</a>
+        <a href="{% url 'runs' %}" class="{% if active_page == 'runs' %}active{% endif %}">Runs</a>
+        <a href="{% url 'workers' %}" class="{% if active_page == 'workers' %}active{% endif %}">Workers</a>
+    </nav>
+
+    <div class="container">
+        {% block content %}{% endblock %}
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
