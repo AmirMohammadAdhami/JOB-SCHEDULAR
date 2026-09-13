@@ -34,6 +34,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third-party
     "rest_framework",
+    "drf_spectacular",
     # Local apps
     "apps.core",
     "apps.jobs",
@@ -48,6 +49,8 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "nexusops.middleware.IdempotencyMiddleware",
+    "nexusops.ratelimit.RateLimitMiddleware",
 ]
 
 ROOT_URLCONF = "nexusops.urls"
@@ -100,6 +103,27 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": [
         "rest_framework.parsers.JSONParser",
     ],
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# ---------------------------------------------------------------------------
+# DRF Spectacular (OpenAPI / Swagger)
+# ---------------------------------------------------------------------------
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "NexusOps API",
+    "DESCRIPTION": "Job scheduling platform API with idempotency, rate limiting, and crash recovery.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "TAGS": [
+        {"name": "Jobs", "description": "Create, list, trigger, and manage scheduled jobs."},
+        {"name": "Runs", "description": "View job run history and status."},
+        {"name": "Attempts", "description": "View individual job attempt details."},
+        {"name": "Workers", "description": "View worker status and running attempts."},
+        {"name": "Dashboard", "description": "Aggregate stats for the dashboard."},
+    ],
+    "GENERIC_SCHEMA_NAME": "NexusOps",
 }
 
 # ---------------------------------------------------------------------------
@@ -165,6 +189,25 @@ LOGGING = {
         },
     },
 }
+
+# ---------------------------------------------------------------------------
+# Security (production hardening)
+# ---------------------------------------------------------------------------
+
+# HTTPS / proxy settings
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_HSTS_SECONDS = 0 if DEBUG else 31536000
+SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG
+SECURE_HSTS_PRELOAD = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = "DENY"
+
+# CORS (allow all origins in dev, restrict in production)
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+CORS_ALLOWED_ORIGINS = os.environ.get("CORS_ALLOWED_ORIGINS", "").split(",") if not DEBUG else []
 
 # ---------------------------------------------------------------------------
 # Service URLs (used by scheduler and worker)

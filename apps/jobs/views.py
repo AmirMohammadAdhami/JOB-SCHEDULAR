@@ -29,6 +29,7 @@ class JobListView(APIView):
     """List all jobs, or create a new job."""
 
     def get(self, request):
+        """List all jobs with optional status/priority filters."""
         queryset = Job.objects.filter(status__in=[Job.Status.ACTIVE, Job.Status.INACTIVE])
 
         # Optional filters

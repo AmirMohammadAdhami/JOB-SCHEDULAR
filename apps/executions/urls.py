@@ -2,11 +2,13 @@
 from django.urls import path
 
 from apps.executions.views import (
+    CleanupOldRunsView,
     DashboardView,
     JobAttemptDetailView,
     JobAttemptListView,
     JobRunDetailView,
     JobRunListView,
+    ResetStuckRunsView,
     WorkerDetailView,
     WorkerListView,
 )
@@ -33,4 +35,7 @@ urlpatterns = [
     ),
     # Dashboard
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    # Operations
+    path("ops/cleanup/", CleanupOldRunsView.as_view(), name="ops-cleanup"),
+    path("ops/reset-stuck/", ResetStuckRunsView.as_view(), name="ops-reset-stuck"),
 ]

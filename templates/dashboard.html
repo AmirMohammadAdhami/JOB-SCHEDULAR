@@ -79,6 +79,19 @@
         </tbody>
     </table>
 </div>
+
+<div class="section">
+    <div class="section-header">
+        <h2>Operations</h2>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn" onclick="Dashboard.checkHealth()">Health Check</button>
+        <button class="btn" onclick="Dashboard.cleanupOldRuns()">Cleanup Old Runs</button>
+        <button class="btn" onclick="Dashboard.resetStuckRuns()">Reset Stuck Runs</button>
+        <button class="btn" onclick="Dashboard.exportSchema()">Export API Schema</button>
+    </div>
+    <div id="ops-result" style="margin-top:12px;display:none;padding:12px;border-radius:8px;font-size:13px;font-family:monospace;white-space:pre-wrap"></div>
+</div>
 {% endblock %}
 
 {% block extra_js %}

@@ -28,6 +28,7 @@ class JobRunListView(APIView):
     """List all runs with optional filters."""
 
     def get(self, request):
+        """List all runs with optional status/job_id filters."""
         queryset = JobRun.objects.select_related("job").order_by("-created_at")
 
         # Filters
@@ -347,4 +348,80 @@ class DashboardView(APIView):
                 "total": total_jobs,
                 "active": active_jobs,
             },
+        })
+
+
+class CleanupOldRunsView(APIView):
+    """Trigger cleanup of old execution records (dry-run by default)."""
+
+    def post(self, request):
+        days = int(request.data.get("days", 90))
+        execute = request.data.get("execute", False)
+        cutoff = tz.now() - timedelta(days=days)
+
+        run_count = JobRun.objects.filter(created_at__lt=cutoff).count()
+        attempt_count = JobAttempt.objects.filter(created_at__lt=cutoff).count()
+
+        if execute:
+            JobAttempt.objects.filter(created_at__lt=cutoff).delete()
+            JobRun.objects.filter(created_at__lt=cutoff).delete()
+            return Response({
+                "status": "executed",
+                "message": f"Deleted {run_count} runs and {attempt_count} attempts older than {days} days",
+                "runs_deleted": run_count,
+                "attempts_deleted": attempt_count,
+            })
+
+        return Response({
+            "status": "dry_run",
+            "message": f"Would delete {run_count} runs and {attempt_count} attempts older than {days} days (send execute=true to apply)",
+            "runs_to_delete": run_count,
+            "attempts_to_delete": attempt_count,
+        })
+
+
+class ResetStuckRunsView(APIView):
+    """Reset runs stuck in QUEUED/RUNNING for too long."""
+
+    def post(self, request):
+        timeout = int(request.data.get("timeout_minutes", 60))
+        execute = request.data.get("execute", False)
+        cutoff = tz.now() - timedelta(minutes=timeout)
+
+        stuck_runs = JobRun.objects.filter(
+            status__in=[JobRun.Status.QUEUED, JobRun.Status.RUNNING],
+            created_at__lt=cutoff,
+        )
+        stuck_attempts = JobAttempt.objects.filter(
+            status__in=[JobAttempt.Status.QUEUED, JobAttempt.Status.RUNNING],
+            created_at__lt=cutoff,
+        )
+        run_count = stuck_runs.count()
+        attempt_count = stuck_attempts.count()
+
+        if execute:
+            stuck_attempts.update(
+                status=JobAttempt.Status.QUEUED,
+                worker_id=None,
+                fencing_token=0,
+                lease_expires_at=None,
+                started_at=None,
+                error_message="Reset by ops endpoint",
+            )
+            stuck_runs.update(
+                status=JobRun.Status.QUEUED,
+                started_at=None,
+            )
+            return Response({
+                "status": "executed",
+                "message": f"Reset {run_count} runs and {attempt_count} attempts stuck for >{timeout}min",
+                "runs_reset": run_count,
+                "attempts_reset": attempt_count,
+            })
+
+        return Response({
+            "status": "dry_run",
+            "message": f"Would reset {run_count} runs and {attempt_count} attempts stuck for >{timeout}min (send execute=true to apply)",
+            "runs_to_reset": run_count,
+            "attempts_to_reset": attempt_count,
         })

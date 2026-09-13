@@ -68,6 +68,65 @@ const Dashboard = {
         } catch (e) { console.error('Dashboard refresh failed:', e); }
     },
 
+    showResult(msg, ok) {
+        const el = document.getElementById('ops-result');
+        el.style.display = 'block';
+        el.style.background = ok ? '#0d2818' : '#2d1014';
+        el.style.border = ok ? '1px solid #238636' : '1px solid #da3633';
+        el.style.color = ok ? '#3fb950' : '#f85149';
+        el.textContent = msg;
+    },
+
+    async checkHealth() {
+        try {
+            const r = await fetch('/health/ready');
+            const d = await r.json();
+            const lines = Object.entries(d.checks).map(([k,v]) => `  ${k}: ${v}`).join('\n');
+            this.showResult(`Readiness: ${d.status}\n${lines}`, r.ok);
+        } catch (e) {
+            this.showResult(`Health check failed: ${e.message}`, false);
+        }
+    },
+
+    async cleanupOldRuns() {
+        if (!confirm('Delete runs older than 90 days? (dry run — no actual deletion)')) return;
+        try {
+            const r = await fetch('/api/v1/ops/cleanup/', {method:'POST', headers:{'Content-Type':'application/json'}});
+            const d = await r.json();
+            this.showResult(d.message || JSON.stringify(d), r.ok);
+        } catch (e) {
+            this.showResult(`Cleanup failed: ${e.message}`, false);
+        }
+    },
+
+    async resetStuckRuns() {
+        if (!confirm('Reset runs stuck for >60 minutes? (dry run)')) return;
+        try {
+            const r = await fetch('/api/v1/ops/reset-stuck/', {method:'POST', headers:{'Content-Type':'application/json'}});
+            const d = await r.json();
+            this.showResult(d.message || JSON.stringify(d), r.ok);
+        } catch (e) {
+            this.showResult(`Reset failed: ${e.message}`, false);
+        }
+    },
+
+    async exportSchema() {
+        try {
+            const r = await fetch('/api/schema/?format=json');
+            const d = await r.json();
+            const blob = new Blob([JSON.stringify(d, null, 2)], {type:'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'nexusops-openapi-schema.json';
+            a.click();
+            URL.revokeObjectURL(url);
+            this.showResult('Schema exported as nexusops-openapi-schema.json', true);
+        } catch (e) {
+            this.showResult(`Export failed: ${e.message}`, false);
+        }
+    },
+
     init() {
         this.refresh();
         setInterval(() => this.refresh(), 3000);
